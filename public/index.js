@@ -1,4 +1,6 @@
-var socket = io.connect('http://localhost:3000');
+var socket1 = io.connect('http://localhost:3000');
+var socket2 = io.connect('http://localhost:3001');
+var socket3 = io.connect('http://localhost:3002');
 
 var from = document.forms["transaction"]["client_from"];
 var to = document.forms["transaction"]["client_to"];

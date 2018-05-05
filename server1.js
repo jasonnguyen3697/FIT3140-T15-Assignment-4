@@ -44,6 +44,7 @@ function addNewTransaction(from, to, amount, description)
   }));
 }
 
+//extra function to sum numbers
 function sum(list)
 {
   var total = 0;
@@ -56,7 +57,6 @@ function sum(list)
 
 //Server wealth
 var serverWealth = [1, 3, 5];
-var servers = ['self', '', ''];
 
 //Get random server to validate data
 function getRandomServer(serverList)
@@ -106,8 +106,15 @@ function validateRequest(transaction)
     console.log("Transaction is valid");
     //add new block
     addNewTransaction(transaction.client_from, transaction.client_to, transaction.amount, transaction.description);
-    server2.emit('addblock', transaction);
-    server3.emit('addblock', transaction);
+    //send both transaction information and server number
+    server2.emit('addblock', {
+      transaction: transaction,
+      server: 0
+    });
+    server3.emit('addblock', {
+      transaction: transaction,
+      server: 0
+    });
   }
   else
   {
@@ -135,34 +142,27 @@ var io = socket(server);
 //Check for other servers connection
 server2.on("connect", function(){
   console.log("Connect to 3001");
-  //server2.emit('identifyServer', 0);
 });
 
 
 server3.on("connect", function(){
   console.log("Connect to 3002");
-  //server3.emit('identifyServer', 0);
 });
 
 //Check for connection
 io.on('connection', function(socket){
   console.log("Client " + socket.id + " has connected to server");
-  console.log(socket.handshake);
-  /*socket.on('identifyServer', function(data){
-    servers[data] = socket.id;
-    console.log(servers);
-  });*/
   socket.on('validate', function(data){
     validateRequest(data);
+    serverWealth[0] += 3;
     console.log(blockChain.chain[blockChain.chain.length-1].data);
-  })
+  });
+  socket.on('addblock', function(data){
+    addNewTransaction(data.transaction.client_from, data.transaction.client_to, data.transaction.amount, data.transaction.description);
+    console.log(blockChain.chain[blockChain.chain.length-1].data);
+    serverWealth[data.server] += 3;
+  });
 });
-
-//View Engine
-/*
-server3000.set('view engine', 'ejs');
-server3000.set('views', path.join(__dirname, 'views'));
-*/
 
 //Body parser middleware
 server3000.use(bodyParser.json());
@@ -196,7 +196,7 @@ server3000.use(expressValidator({
 
 server3000.post('/', function(request, response){
   console.log(request.body);
-  //chooseServer = getRandomServer(serverWealth);
+  //var chooseServer = getRandomServer(serverWealth);
   var chooseServer = 0;
   if (!chooseServer)
   {
@@ -216,5 +216,6 @@ server3000.post('/', function(request, response){
   {
     console.log("Error with getRandomServer: Server chosen not on list");
   }
+  serverWealth[chooseServer] += 3;
   response.sendFile(__dirname + '/public/index.html');
 });
