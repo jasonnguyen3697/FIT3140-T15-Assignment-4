@@ -6,14 +6,18 @@ var blockChain = new BlockChainClass();
 
 //add block to chain
 blockChain.addBlock(new BlockClass(1, Date(), {
-  target: "Sam",
-  amount: 50
+  from: "-1",
+  to: "Sam",
+  amount: 100,
+  description: "Open balance"
 }));
 //Hash values caluclated within addBlock function
 
 blockChain.addBlock(new BlockClass(2, Date(), {
-  target: "Tom",
-  amount: 110
+  from: "-1",
+  to: "Adam",
+  amount: 150,
+  description: "Open balance"
 }));
 
 blockChain.addBlock(new BlockClass(3, Date(), {

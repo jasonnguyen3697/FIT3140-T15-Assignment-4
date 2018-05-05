@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title>Blockchain E-Commerce</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.1.0/socket.io.js"></script>
+    <script src="./index.js"></script>
+  </head>
+  <body>
+    <form name="transaction" method="POST" action="/">
+      <label>From</label>
+      <br>
+      <input type="text" name="client_from" required><p id="error_client_from"><p>
+      <br>
+      <label>To</label>
+      <br>
+      <input type="text" name="client_to" required><p id="error_client_to"><p>
+      <br>
+      <label>Amount</label>
+      <br>
+      <input type="text" name="amount" required><p id="error_amount"><p>
+      <br>
+      <label>Description</label>
+      <br>
+      <input type="text" name="description" required><p id="error_description"><p>
+      <br>
+      <label>Status</label>
+      <br>
+      <p id = "status"></p>
+      <br><br>
+      <input type="submit" value="Submit">
+    </form>
+  </body>
+</html>
