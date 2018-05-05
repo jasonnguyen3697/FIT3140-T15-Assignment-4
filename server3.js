@@ -111,10 +111,12 @@ function validateRequest(transaction)
       transaction: transaction,
       server: 2
     });
+    return 1;
   }
   else
   {
     console.log("Transaction failed. Insufficient funds.");
+    return 2;
   }
 }
 
@@ -149,6 +151,7 @@ server2.on('connect', function(){
 io.on('connection', function(socket){
   console.log("Client " + socket.id + " has connected to server");
   socket.on('validate', function(data){
+    console.log('Validating data');
     validateRequest(data);
     //update wealth for itself
     serverWealth[2] += 3;
@@ -156,6 +159,7 @@ io.on('connection', function(socket){
   });
   socket.on('addblock', function(data){
     addNewTransaction(data.transaction.client_from, data.transaction.client_to, data.transaction.amount, data.transaction.description);
+    console.log(blockChain.chain[blockChain.chain.length-1].data);
     //update wealth of other server
     serverWealth[data.server] += 3;
   });
@@ -165,10 +169,15 @@ io.on('connection', function(socket){
 server3002.use(bodyParser.json());
 server3002.use(bodyParser.urlencoded({extended: false}));
 
+server3002.get('/', function(request, response){
+  response.sendFile(__dirname + '/public/index3.html');
+})
+
 server3002.post('/', function(request, response){
   console.log(request.body);
-  //var chooseServer = getRandomServer(serverWealth);
-  var chooseServer = 2;
+  console.log("Request received");
+  var chooseServer = getRandomServer(serverWealth);
+  //var chooseServer = 2;
   if (!chooseServer)
   {
     server1.emit('validate', request.body);
@@ -180,6 +189,7 @@ server3002.post('/', function(request, response){
   else if (chooseServer==2)
   {
     //Need to validate request
+    console.log('Validating data');
     validateRequest(request.body);
     console.log(blockChain.chain[blockChain.chain.length-1].data);
   }
@@ -188,5 +198,5 @@ server3002.post('/', function(request, response){
     console.log("Error with getRandomServer: Server chosen not on list");
   }
   serverWealth[chooseServer] += 3;
-  response.sendFile(__dirname + '/public/index.html');
+  response.sendFile(__dirname + '/public/index3.html');
 });

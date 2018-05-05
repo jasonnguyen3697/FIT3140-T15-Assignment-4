@@ -115,10 +115,12 @@ function validateRequest(transaction)
       transaction: transaction,
       server: 0
     });
+    return 1;
   }
   else
   {
     console.log("Transaction failed. Insufficient funds.");
+    return 2;
   }
 }
 
@@ -126,7 +128,7 @@ function validateRequest(transaction)
 var server3000 = express();
 
 //Set static path
-server3000.use(express.static('public'));
+//server3000.use(express.static('public'));
 
 //make server listen on port 3000
 var server = server3000.listen(3000, function(){
@@ -153,6 +155,7 @@ server3.on("connect", function(){
 io.on('connection', function(socket){
   console.log("Client " + socket.id + " has connected to server");
   socket.on('validate', function(data){
+    console.log('Validating data');
     validateRequest(data);
     serverWealth[0] += 3;
     console.log(blockChain.chain[blockChain.chain.length-1].data);
@@ -194,13 +197,19 @@ server3000.use(expressValidator({
   }
 }));
 
+server3000.get('/', function(request, response){
+  response.sendFile(__dirname + '/public/index1.html');
+})
+
 server3000.post('/', function(request, response){
   console.log(request.body);
-  //var chooseServer = getRandomServer(serverWealth);
-  var chooseServer = 0;
+  console.log("Request received");
+  var chooseServer = getRandomServer(serverWealth);
+  //var chooseServer = 0;
   if (!chooseServer)
   {
     //Need to validate request
+    console.log("Validating data");
     validateRequest(request.body);
     console.log(blockChain.chain[blockChain.chain.length-1].data);
   }
@@ -217,5 +226,5 @@ server3000.post('/', function(request, response){
     console.log("Error with getRandomServer: Server chosen not on list");
   }
   serverWealth[chooseServer] += 3;
-  response.sendFile(__dirname + '/public/index.html');
+  response.sendFile(__dirname + '/public/index1.html');
 });

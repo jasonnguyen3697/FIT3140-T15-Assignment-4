@@ -103,7 +103,7 @@ function validateRequest(transaction)
     //add new block
     addNewTransaction(transaction.client_from, transaction.client_to, transaction.amount, transaction.description);
     //send both transaction information and server number
-    server2.emit('addblock', {
+    server1.emit('addblock', {
       transaction: transaction,
       server: 1
     });
@@ -111,10 +111,12 @@ function validateRequest(transaction)
       transaction: transaction,
       server: 1
     });
+    return 1;
   }
   else
   {
     console.log("Transaction failed. Insufficient funds.");
+    return 2;
   }
 }
 
@@ -152,6 +154,7 @@ server3.on('connect', function(){
 io.on('connection', function(socket){
   console.log("Client " + socket.id + " has connected to server");
   socket.on('validate', function(data){
+    console.log('Validating data');
     validateRequest(data);
     //update wealth for itself
     serverWealth[1] += 3;
@@ -169,10 +172,15 @@ io.on('connection', function(socket){
 server3001.use(bodyParser.json());
 server3001.use(bodyParser.urlencoded({extended: false}));
 
+server3001.get('/', function(request, response){
+  response.sendFile(__dirname + '/public/index2.html');
+})
+
 server3001.post('/', function(request, response){
   console.log(request.body);
-  //var chooseServer = getRandomServer(serverWealth);
-  var chooseServer = 1;
+  console.log("Request received");
+  var chooseServer = getRandomServer(serverWealth);
+  //var chooseServer = 1;
   if (!chooseServer)
   {
     server1.emit('validate', request.body);
@@ -180,6 +188,7 @@ server3001.post('/', function(request, response){
   else if (chooseServer==1)
   {
     //Need to validate request
+    console.log("Validating data");
     validateRequest(request.body);
     console.log(blockChain.chain[blockChain.chain.length-1].data);
   }
@@ -192,5 +201,5 @@ server3001.post('/', function(request, response){
     console.log("Error with getRandomServer: Server chosen not on list");
   }
   serverWealth[chooseServer] += 3;
-  response.sendFile(__dirname + '/public/index.html');
+  response.sendFile(__dirname + '/public/index2.html');
 });
