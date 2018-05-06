@@ -170,7 +170,7 @@ io.listen(localportSocketio).on("connection", function (socket){
     socket.on('servers',function(dataen){
         var data = messages.Transac.decode(dataen);
         console.log('Recieved Servers')
-        var newServers=JSON.parse(data);
+        var newServers=JSON.parse(data.shorten);
         for (var k=1;k<newServers.length;k++){
             if (serverNames.indexOf(newServers[k].name)==-1){
                 servers.push(newServers[k]);
@@ -187,10 +187,10 @@ io.listen(localportSocketio).on("connection", function (socket){
     socket.on('blockchain',function(dataen){
         var newBlockchain = messages.Transac.decode(dataen);
         var blockChaintemp= new BlockChainClass;
-        blockChaintemp.chain=JSON.parse(newBlockchain).chain;
+        blockChaintemp.chain=JSON.parse(newBlockchain.shorten).chain;
         if (blockChaintemp.getLatestIndex>blockChain.getLatestIndex){
             blockChain=blockChaintemp;
-            console.log('Replacing old blockchain with' + newBlockchain);
+            console.log('Replacing old blockchain with' + newBlockchain.shorten);
         } 
     });
     
