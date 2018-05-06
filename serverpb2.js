@@ -10,10 +10,6 @@ var BlockClass = require("./blockClass.js");
 var randomNumber = require('random-number');
 var protobuf = require('protocol-buffers');
 var fs = require('fs'); // file system
-var fromcl;
-var tocl;
-var cost;
-var des
 var messages = protobuf(fs.readFileSync('transac.proto'));
 //initialise a block chain
 var blockChain = new BlockChainClass();
@@ -104,19 +100,19 @@ function validateRequest(transaction)
     console.log("Block chain is not valid. Transaction failed.");
     return 0;
   }
-  var balance = checkBalance(obj.client_from);
+  var balance = checkBalance(obj.from);
   if (balance >= parseInt(obj.amount, 10))
   {
     console.log("Transaction is valid");
     //add new block
-    addNewTransaction(obj);
+    addNewTransaction(transaction);
     //send both transaction information and server number
     server2.emit('addblock', {
-      transaction: obj,
+      transaction: transaction,
       server: 1
     });
     server3.emit('addblock', {
-      transaction: obj,
+      transaction: transaction,
       server: 1
     });
   }
@@ -166,8 +162,7 @@ io.on('connection', function(socket){
     console.log(blockChain.chain[blockChain.chain.length-1].data);
   });
   socket.on('addblock', function(data){
-    var obj = messages.Transac.decode(data.transaction);
-    addNewTransaction(obj.from, obj.to, obj.amount, obj.description);
+    addNewTransaction(transaction);
     console.log(blockChain.chain[blockChain.chain.length-1].data);
     //update wealth of other server
     serverWealth[data.server] += 3;
