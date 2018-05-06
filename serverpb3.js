@@ -8,6 +8,9 @@ var server2 = require('socket.io-client')('http://localhost:3001');
 var BlockChainClass = require("./blockChainClass.js");
 var BlockClass = require("./blockClass.js");
 var randomNumber = require('random-number');
+var protobuf = require('protocol-buffers');
+var fs = require('fs'); // file system
+var messages = protobuf(fs.readFileSync('transac.proto'));
 
 //initialise a block chain
 var blockChain = new BlockChainClass();
@@ -33,13 +36,14 @@ function serverInitialise()
 }
 
 //Add new transaction block
-function addNewTransaction(from, to, amount, description)
+function addNewTransaction(transaction)
 {
+  var obj = messages.Transac.decode(transaction);
   blockChain.addBlock(new BlockClass(blockChain.chain.length, Date(), {
-    from: from,
-    to: to,
-    amount: amount,
-    description: description
+    from: obj.from,
+    to: obj.to,
+    amount: obj.amount,
+    description: obj.description
   }));
 }
 
@@ -91,17 +95,18 @@ function checkBalance(name)
 //Validate request
 function validateRequest(transaction)
 {
+  var obj = messages.Transac.decode(transaction);
   if (!blockChain.isChainValid())
   {
     console.log("Block chain is not valid. Transaction failed.");
     return 0;
   }
-  var balance = checkBalance(transaction.client_from);
-  if (balance >= parseInt(transaction.amount, 10))
+  var balance = checkBalance(obj.from);
+  if (balance >= parseInt(obj.amount, 10))
   {
     console.log("Transaction is valid");
     //add new block
-    addNewTransaction(transaction.client_from, transaction.client_to, transaction.amount, transaction.description);
+    addNewTransaction(transaction);
     //send both transaction information and server number
     server1.emit('addblock', {
       transaction: transaction,
@@ -111,12 +116,10 @@ function validateRequest(transaction)
       transaction: transaction,
       server: 2
     });
-    return 1;
   }
   else
   {
     console.log("Transaction failed. Insufficient funds.");
-    return 2;
   }
 }
 
@@ -151,20 +154,15 @@ server2.on('connect', function(){
 io.on('connection', function(socket){
   console.log("Client " + socket.id + " has connected to server");
   socket.on('validate', function(data){
-    console.log('Validating data');
-    console.log("communicating with " + socket.id);
-    io.to(socket.id).emit('status', validateRequest(data.transaction));
+    validateRequest(data);
     //update wealth for itself
     serverWealth[2] += 3;
     console.log(blockChain.chain[blockChain.chain.length-1].data);
   });
   socket.on('addblock', function(data){
-    addNewTransaction(data.transaction.client_from, data.transaction.client_to, data.transaction.amount, data.transaction.description);
-    console.log(blockChain.chain[blockChain.chain.length-1].data);
-  });
-  socket.on('increaseWealth', function(data){
-    serverWealth[data] += 3;
-    console.log(serverWealth);
+    addNewTransaction(data);
+    //update wealth of other server
+    serverWealth[data.server] += 3;
   });
 });
 
@@ -172,91 +170,28 @@ io.on('connection', function(socket){
 server3002.use(bodyParser.json());
 server3002.use(bodyParser.urlencoded({extended: false}));
 
-/*server3002.get('/', function(request, response){
-  response.sendFile(__dirname + '/public/index3.html');
-})*/
-
 server3002.post('/', function(request, response){
   console.log(request.body);
-  console.log("Request received");
   //var chooseServer = getRandomServer(serverWealth);
   var chooseServer = 2;
+  var buf = messages.Transac.encode({
+    from: request.body.client_from,
+    to: request.body.client_to,
+    amount: request.body.amount,
+    description: request.body.description
+  });
   if (!chooseServer)
   {
-    server1.emit('validate', {
-      transaction: request.body,
-      server: 2
-    });
-    server2.emit('increaseWealth', 0);
-    server1.on('status', function(data){
-      if (!data) //invalid blockchain
-      {
-        response.sendFile(__dirname + '/public/invalidChain.html');
-      }
-      else if (data==1) //success
-      {
-        response.sendFile(__dirname + '/public/success.html');
-      }
-      else if (data==2) //insufficient funds
-      {
-        response.sendFile(__dirname + '/public/insufficientFunds.html')
-      }
-      else
-      {
-        console.log("Invalid return of validation request");
-      }
-      //response.end();
-    })
+    server1.emit('validate', buf);
   }
   else if (chooseServer==1)
   {
-    server2.emit('validate', {
-      transaction: request.body,
-      server: 2
-    });
-    server1.emit('increaseWealth', 1);
-    server2.on('status', function(data){
-      if (!data) //invalid blockchain
-      {
-        response.sendFile(__dirname + '/public/invalidChain.html');
-      }
-      else if (data==1) //success
-      {
-        response.sendFile(__dirname + '/public/success.html');
-      }
-      else if (data==2) //insufficient funds
-      {
-        response.sendFile(__dirname + '/public/insufficientFunds.html')
-      }
-      else
-      {
-        console.log("Invalid return of validation request");
-      }
-      //response.end();
-    })
+    server2.emit('validate', buf);
   }
   else if (chooseServer==2)
   {
     //Need to validate request
-    console.log("Validating data");
-    var valid = validateRequest(request.body);
-    if (!valid) //invalid blockchain
-    {
-      response.sendFile(__dirname + '/public/invalidChain.html');
-    }
-    else if (valid==1) //success
-    {
-      response.sendFile(__dirname + '/public/success.html');
-    }
-    else if (valid==2) //insufficient funds
-    {
-      response.sendFile(__dirname + '/public/insufficientFunds.html')
-    }
-    else
-    {
-      console.log("Invalid return of validation request");
-    }
-    //response.end();
+    validateRequest(buf);
     console.log(blockChain.chain[blockChain.chain.length-1].data);
   }
   else
@@ -264,7 +199,5 @@ server3002.post('/', function(request, response){
     console.log("Error with getRandomServer: Server chosen not on list");
   }
   serverWealth[chooseServer] += 3;
-  console.log(serverWealth);
-  //res.end();
-  //response.sendFile(__dirname + '/public/index3.html');
+  response.sendFile(__dirname + '/public/index.html');
 });

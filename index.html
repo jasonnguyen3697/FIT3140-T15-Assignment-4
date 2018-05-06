@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title>Blockchain EEEE-Commerce</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.1.0/socket.io.js"></script>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+      <script src="/socket.io/socket.io.js"></script>
+  </head>
+    
+    <script>
+    var socket = io.connect('localhost:3001');
+    
+    function SendData(){
+        transactionObject={client_from:document.getElementById('client_from').value,
+                           client_to:document.getElementById('client_to').value,
+                           amount:document.getElementById('amount').value,
+                           description:document.getElementById('description').value
+                          }
+        socket.emit('transactionSuccess');
+        socket.emit('clientTransaction',transactionObject);
+        return false;
+    }
+    </script>
+    
+  <body>
+    <form name="transaction" onsubmit=" return SendData()">
+      <label>From</label>
+      <br>
+      <input type="text" name="client_from" id="client_from" required><p id="error_client_from"><p>
+      <br>
+      <label>To</label>
+      <br>
+      <input type="text" name="client_to" id="client_to" required><p id="error_client_to"><p>
+      <br>
+      <label>Amount</label>
+      <br>
+      <input type="text" name="amount" id="amount" required><p id="error_amount"><p>
+      <br>
+      <label>Description</label>
+      <br>
+      <input type="text" name="description" id="description" required><p id="error_description"><p>
+      <br>
+      <label>Status</label>
+      <br>
+      <p id = "status"></p>
+      <br><br>
+      <input type="submit" value="Submit" >
+    </form>
+  </body>
+</html>

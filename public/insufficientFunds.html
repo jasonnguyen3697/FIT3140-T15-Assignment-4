@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8">
     <title>Blockchain E-Commerce</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.1.0/socket.io.js"></script>
-    <script src="./index2.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/index1.js"></script>
   </head>
   <body>
     <form name="transaction" method="POST" action="/">
@@ -26,7 +26,7 @@
       <br>
       <label>Status</label>
       <br>
-      <p id = "status"></p>
+      <p id = "status">Transaction failed. Insufficient funds.</p>
       <br><br>
       <input type="submit" value="Submit">
     </form>

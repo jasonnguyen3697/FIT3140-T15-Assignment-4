@@ -8,7 +8,9 @@ var server3 = require('socket.io-client')('http://localhost:3002');
 var BlockChainClass = require("./blockChainClass.js");
 var BlockClass = require("./blockClass.js");
 var randomNumber = require('random-number');
-
+var protobuf = require('protocol-buffers');
+var fs = require('fs'); // file system
+var messages = protobuf(fs.readFileSync('transac.proto'));
 
 //initialise a block chain
 var blockChain = new BlockChainClass();
@@ -34,13 +36,14 @@ function serverInitialise()
 }
 
 //Add new transaction block
-function addNewTransaction(from, to, amount, description)
+function addNewTransaction(transaction)
 {
+  var obj = messages.Transac.decode(transaction);
   blockChain.addBlock(new BlockClass(blockChain.chain.length, Date(), {
-    from: from,
-    to: to,
-    amount: amount,
-    description: description
+    from: obj.from,
+    to: obj.to,
+    amount: obj.amount,
+    description: obj.description
   }));
 }
 
@@ -95,17 +98,19 @@ function checkBalance(name)
 //Validate request
 function validateRequest(transaction)
 {
+  var obj = messages.Transac.decode(transaction);
   if (!blockChain.isChainValid())
   {
     console.log("Block chain is not valid. Transaction failed.");
     return 0;
   }
-  var balance = checkBalance(transaction.client_from);
-  if (balance >= parseInt(transaction.amount, 10))
+  var balance = checkBalance(obj.from);
+  if (balance >= parseInt(obj.amount, 10))
   {
     console.log("Transaction is valid");
     //add new block
-    addNewTransaction(transaction.client_from, transaction.client_to, transaction.amount, transaction.description);
+    
+    addNewTransaction(obj);
     //send both transaction information and server number
     server2.emit('addblock', {
       transaction: transaction,
@@ -115,12 +120,10 @@ function validateRequest(transaction)
       transaction: transaction,
       server: 0
     });
-    return 1;
   }
   else
   {
     console.log("Transaction failed. Insufficient funds.");
-    return 2;
   }
 }
 
@@ -155,19 +158,14 @@ server3.on("connect", function(){
 io.on('connection', function(socket){
   console.log("Client " + socket.id + " has connected to server");
   socket.on('validate', function(data){
-    console.log('Validating data');
-    console.log("communicating with " + socket.id);
-    io.to(socket.id).emit('status', validateRequest(data.transaction));
+    validateRequest(data);
     serverWealth[0] += 3;
     console.log(blockChain.chain[blockChain.chain.length-1].data);
   });
   socket.on('addblock', function(data){
-    addNewTransaction(data.transaction.client_from, data.transaction.client_to, data.transaction.amount, data.transaction.description);
+    addNewTransaction(data);
     console.log(blockChain.chain[blockChain.chain.length-1].data);
-  });
-  socket.on('increaseWealth', function(data){
-    serverWealth[data] += 3;
-    console.log(serverWealth);
+    serverWealth[data.server] += 3;
   });
 });
 
@@ -201,99 +199,35 @@ server3000.use(expressValidator({
   }
 }));
 
-/*server3000.get('/', function(request, response){
-  response.sendFile(__dirname + '/public/index1.html');
-})*/
-
 server3000.post('/', function(request, response){
   console.log(request.body);
-  console.log("Request received");
-  var chooseServer = getRandomServer(serverWealth);
-  //var chooseServer = 0;
+  //var chooseServer = getRandomServer(serverWealth);
+  var chooseServer = 0;
+  
+  var buf = messages.Transac.encode({
+    from: request.body.client_from,
+    to: request.body.client_to,
+    amount: request.body.amount,
+    description: request.body.description
+  });
   if (!chooseServer)
   {
     //Need to validate request
-    console.log("Validating data");
-    var valid = validateRequest(request.body);
-    if (!valid) //invalid blockchain
-    {
-      response.sendFile(__dirname + '/public/invalidChain.html');
-    }
-    else if (valid==1) //success
-    {
-      response.sendFile(__dirname + '/public/success.html');
-    }
-    else if (valid==2) //insufficient funds
-    {
-      response.sendFile(__dirname + '/public/insufficientFunds.html')
-    }
-    else
-    {
-      console.log("Invalid return of validation request");
-    }
-    //response.end();
+    validateRequest(buf);
     console.log(blockChain.chain[blockChain.chain.length-1].data);
   }
   else if (chooseServer==1)
   {
-    server2.emit('validate', {
-      transaction: request.body,
-      server: 0
-    });
-    server3.emit('increaseWealth', 1);
-    server2.on('status', function(data){
-      if (!data) //invalid blockchain
-      {
-        response.sendFile(__dirname + '/public/invalidChain.html');
-      }
-      else if (data==1) //success
-      {
-        response.sendFile(__dirname + '/public/success.html');
-      }
-      else if (data==2) //insufficient funds
-      {
-        response.sendFile(__dirname + '/public/insufficientFunds.html')
-      }
-      else
-      {
-        console.log("Invalid return of validation request");
-      }
-      //response.end();
-    })
+    server2.emit('validate', buf);
   }
   else if (chooseServer==2)
   {
-    server3.emit('validate', {
-      transaction: request.body,
-      server: 0
-    });
-    server2.emit('increaseWealth', 2);
-    server3.on('status', function(data){
-      if (!data) //invalid blockchain
-      {
-        response.sendFile(__dirname + '/public/invalidChain.html');
-      }
-      else if (data==1) //success
-      {
-        response.sendFile(__dirname + '/public/success.html');
-      }
-      else if (data==2) //insufficient funds
-      {
-        response.sendFile(__dirname + '/public/insufficientFunds.html')
-      }
-      else
-      {
-        console.log("Invalid return of validation request");
-      }
-      //response.end();
-    })
+    server3.emit('validate', buf);
   }
   else
   {
     console.log("Error with getRandomServer: Server chosen not on list");
   }
   serverWealth[chooseServer] += 3;
-  console.log(serverWealth);
-  //response.end();
-  //response.sendFile(__dirname + '/public/index1.html');
+  response.sendFile(__dirname + '/public/index.html');
 });
