@@ -110,7 +110,7 @@ function validateRequest(transaction)
     console.log("Transaction is valid");
     //add new block
     
-    addNewTransaction(obj);
+    addNewTransaction(transaction);
     //send both transaction information and server number
     server2.emit('addblock', {
       transaction: transaction,
