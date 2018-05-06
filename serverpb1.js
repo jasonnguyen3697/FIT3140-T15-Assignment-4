@@ -40,13 +40,14 @@ function serverInitialise()
 }
 
 //Add new transaction block
-function addNewTransaction(from, to, amount, description)
+function addNewTransaction(transaction)
 {
+  var obj = messages.Transac.decode(transaction);
   blockChain.addBlock(new BlockClass(blockChain.chain.length, Date(), {
-    from: from,
-    to: to,
-    amount: amount,
-    description: description
+    from: obj.from,
+    to: obj.to,
+    amount: obj.amount,
+    description: obj.description
   }));
 }
 
@@ -113,7 +114,7 @@ function validateRequest(transaction)
     console.log("Transaction is valid");
     //add new block
     
-    addNewTransaction(obj.from, obj.to, obj.amount, obj.description);
+    addNewTransaction(obj);
     //send both transaction information and server number
     server2.emit('addblock', {
       transaction: transaction,
@@ -216,7 +217,7 @@ server3000.post('/', function(request, response){
   if (!chooseServer)
   {
     //Need to validate request
-    validateRequest(request.body);
+    validateRequest(buf);
     console.log(blockChain.chain[blockChain.chain.length-1].data);
   }
   else if (chooseServer==1)
