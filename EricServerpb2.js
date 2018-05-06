@@ -259,13 +259,14 @@ function checkBalance(transactionName){
 }
 
 function validateRequest(transaction){
+    var obj = messages.Transac.decode(transaction);
     console.log(blockChain.isChainValid);
     if (!blockChain.isChainValid){
         console.log("Block chain is not valid. Transaction failed.");
         return 0;
     }
-    var balance = checkBalance(transaction.client_from);
-    if (balance >= parseInt(transaction.amount, 10)){
+    var balance = checkBalance(obj.from);
+    if (balance >= parseInt(obj.amount, 10)){
         console.log("Transaction is valid");
         return 1;
     }
