@@ -45,7 +45,7 @@ var initialNode={name:'server1',portSocketio:8000,portExpress:3000,address:'http
       socket:0
     });
 initialNode.socket = io_client.connect(initialNode.address);
-var servers=[localserverobject,initial];
+var servers=[localserverobject,initialNode];
 var serverNames=[localname,initialNode.name];
 
 //============================================================================================================================================================================
