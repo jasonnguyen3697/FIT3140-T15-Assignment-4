@@ -172,10 +172,18 @@ io.listen(localportSocketio).on("connection", function (socket){
     socket.on('disconnect',function(){
         console.log('Server disconnected');
         socket.disconnect();
-        serverping=[];
-        for (var i=1;i<servers.length;i++){
-            servers[i].socket.emit('Ping');
+        
+        if (serverNames.length==2){
+            serverNames=[localname];
+            servers=[localserverobject];
         }
+        else{
+            serverping=[];
+            for (var i=1;i<servers.length;i++){
+                servers[i].socket.emit('Ping');
+            }
+        }
+        
     });
     
     socket.on('Handshake',function(servername){

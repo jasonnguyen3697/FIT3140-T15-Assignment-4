@@ -64,7 +64,6 @@ io.listen(HTMLserver).on("connection",function(socketHTML){
     console.log('Client connected');
     
     socketHTML.on('clientTransaction',function(data){
-        console.log(data);
         var index=getRandomServer(servers);
         console.log('Random Server: ' + index);
         servers[index].socket.emit('Validate',data);
@@ -79,7 +78,6 @@ io.listen(HTMLserver).on("connection",function(socketHTML){
     });
 });
 
-
 io.listen(localportSocketio).on("connection", function (socket){
     console.log('Server connected');
     //Validate transation
@@ -89,7 +87,7 @@ io.listen(localportSocketio).on("connection", function (socket){
             addNewTransaction(data.client_from, data.client_to, data.amount, data.description);
             servers[0].wealth+=3;
             console.log('New blockchain: ' + JSON.stringify(blockChain));
-            //Broadcast to add new block to blockchain
+            //Broadcast to add new block and wealth to blockchain
             for (var i=1; i<servers.length;i++){
                 servers[i].socket.emit('addBlock',data);
                 servers[i].socket.emit('updateWealth',localname);
@@ -179,10 +177,18 @@ io.listen(localportSocketio).on("connection", function (socket){
     socket.on('disconnect',function(){
         console.log('Server disconnected');
         socket.disconnect();
-        serverping=[];
-        for (var i=1;i<servers.length;i++){
-            servers[i].socket.emit('Ping');
+        
+        if (serverNames.length==2){
+            serverNames=[localname];
+            servers=[localserverobject];
         }
+        else{
+            serverping=[];
+            for (var i=1;i<servers.length;i++){
+                servers[i].socket.emit('Ping');
+            }
+        }
+        
     });
     
     socket.on('Handshake',function(servername){
