@@ -90,7 +90,7 @@ io.listen(localportSocketio).on("connection", function (socket){
     //Validate transation
     socket.on('Validate',function(data){
       var obj = messages.Transac.decode(data);
-        console.log('Transaction Data: ' + data);
+        console.log('Transaction Data: ' + obj);
         if (validateRequest(data)){
             addNewTransaction(obj.from, obj.to, obj.amount, obj.description);
             servers[0].wealth+=3;
