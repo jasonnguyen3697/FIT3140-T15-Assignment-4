@@ -208,8 +208,8 @@ server3000.post('/', function(request, response){
   var buf = messages.Transac.encode({
     from: request.body.client_from,
     to: request.body.client_to,
-    amount: request.body.client_amount,
-    description: request.body.client_description
+    amount: request.body.amount,
+    description: request.body.description
   });
   if (!chooseServer)
   {
