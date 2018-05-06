@@ -10,5 +10,5 @@ message Transac2{
     required string portExpress=2;
     required string address=3;
     required int64 wealth=4;
-    required string socket;
+    required string socket=5;
     }
