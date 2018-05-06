@@ -55,7 +55,7 @@ var serverNames=[localname,initialNode.name];
 console.log(servers);
 
 servers[1].socket.on('connect', function () {
-    servers[1].socket.emit('join', localserverobject);
+    servers[1].socket.send('join', localpb);
 });
 
 //============================================================================================================================================================================
