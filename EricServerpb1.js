@@ -27,6 +27,14 @@ var messages = protobuf(fs.readFileSync('transac.proto'));
 //=========================================================================Initialization=====================================================================================
 //============================================================================================================================================================================
 var localserverobject={name:localname,portSocketio:localportSocketio,portExpress:localportExpress,address:localaddress,wealth:localwealth,socket:localsocket};
+    var localpb = messages.Transac2.encode({
+      name:localname,
+      portSocketio:localportSocketio,
+      portExpress:localportExpress,
+      address:localaddress,
+      wealth:localwealth,
+      socket:localsocket
+    });
 //var initialNode={name:'server2',portSocketio:8001,portExpress:3000,address:'http://localhost:8001',wealth:1,socket:null};
 var servers=[localserverobject];
 var serverNames=[localname];
@@ -73,7 +81,7 @@ io.listen(HTMLserver).on("connection",function(socketHTML){
     });
         var index=getRandomServer(servers);
         console.log('Random Server: ' + index);
-        servers[index].socket.emit('Validate', buf);
+        servers[index].socket.send('Validate', buf);
     });
     
     socketHTML.on('transactionSuccess',function(){
@@ -92,19 +100,19 @@ io.listen(localportSocketio).on("connection", function (socket){
       var obj = messages.Transac.decode(data);
         console.log('Transaction Data: ' + obj);
         if (validateRequest(data)){
-            addNewTransaction(obj.from, obj.to, obj.amount, obj.description);
+            addNewTransaction(data);
             servers[0].wealth+=3;
             console.log('New blockchain: ' + JSON.stringify(blockChain));
             //Broadcast to add new block and wealth to blockchain
             for (var i=1; i<servers.length;i++){
-                servers[i].socket.emit('addBlock',data);
-                servers[i].socket.emit('updateWealth',localname);
+                servers[i].socket.send('addBlock',data);
+                servers[i].socket.send('updateWealth',localname);
             }
             //Send to server that transaction is a success            
-            socket.emit('transactionSuccess');
+            socket.send('transactionSuccess');
         }
         else{
-            socket.emit('transactionFail');
+            socket.send('transactionFail');
         }
     });
     
@@ -115,11 +123,12 @@ io.listen(localportSocketio).on("connection", function (socket){
     socket.on('addBlock',function(data){
         var obj = messages.Transac.decode(data);
         console.log('Adding block: ' + JSON.stringify(obj));
-        addNewTransaction(obj.from, obj.to, obj.amount, obj.description);
+        addNewTransaction(data);
         console.log('New blockchain: ' + JSON.stringify(blockChain));
     });
     
-        socket.on('join',function(data){
+        socket.on('join',function(dataen){
+        var data = messages.Transac.decode(dataen);
         var isNew=1;
         var newServerInfo=data;
         //Find if new node is already in server list
@@ -132,7 +141,7 @@ io.listen(localportSocketio).on("connection", function (socket){
             //Establish client connection to new server
             newServerInfo.socket=io_client.connect(newServerInfo.address);
             newServerInfo.socket.on('connect',function(){
-                newServerInfo.socket.emit('join',localserverobject);
+                newServerInfo.socket.send('join',localpb);
             });
             
             //Deep clone server list to make socket of copy null so we can send over JSON
@@ -141,8 +150,14 @@ io.listen(localportSocketio).on("connection", function (socket){
                 serversCopy[k].socket=null;
             }
             //Send blockchain and serverlist
-            newServerInfo.socket.emit('blockchain',JSON.stringify(blockChain));
-            newServerInfo.socket.emit('servers',JSON.stringify(serversCopy));
+            var buf = messages.Transac.encode({
+              shorten: JSON.stringify(blockChain)
+            });
+            newServerInfo.socket.send('blockchain',buf);
+            var buf2 = messages.Transac.encode({
+              shorten: JSON.stringify(serversCopy)
+            });
+            newServerInfo.socket.send('servers',buf2);
             
             //Save new node to server list
             servers.push(newServerInfo);
@@ -152,7 +167,8 @@ io.listen(localportSocketio).on("connection", function (socket){
         }
     });
     
-    socket.on('servers',function(data){
+    socket.on('servers',function(dataen){
+        var data = messages.Transac.decode(dataen);
         console.log('Recieved Servers')
         var newServers=JSON.parse(data);
         for (var k=1;k<newServers.length;k++){
@@ -161,14 +177,15 @@ io.listen(localportSocketio).on("connection", function (socket){
                 serverNames.push(newServers[k].name)
                 servers[servers.length-1].socket = io_client.connect(servers[servers.length-1].address);
                 servers[servers.length-1].socket.on('connect', function () {
-                    servers[servers.length-1].socket.emit('join', localserverobject);
+                    servers[servers.length-1].socket.send('join', localpb);
                 }); 
             }
         }
         console.log('Updated server list: ' + servers);
     });
     
-    socket.on('blockchain',function(newBlockchain){
+    socket.on('blockchain',function(dataen){
+        var newBlockchain = messages.Transac.decode(dataen);
         var blockChaintemp= new BlockChainClass;
         blockChaintemp.chain=JSON.parse(newBlockchain).chain;
         if (blockChaintemp.getLatestIndex>blockChain.getLatestIndex){
@@ -179,7 +196,7 @@ io.listen(localportSocketio).on("connection", function (socket){
     
     socket.on('Ping',function(){
         for (var i=1;i<servers.length;i++){
-            servers[i].socket.emit('Handshake',localname);
+            servers[i].socket.send('Handshake',localname);
         }
     })
     
@@ -194,7 +211,7 @@ io.listen(localportSocketio).on("connection", function (socket){
         else{
             serverping=[];
             for (var i=1;i<servers.length;i++){
-                servers[i].socket.emit('Ping');
+                servers[i].socket.send('Ping');
             }
         }
         
@@ -224,12 +241,13 @@ io.listen(localportSocketio).on("connection", function (socket){
 //============================================================================================================================================================================
 //=========================================================================Blockchain Functions===============================================================================
 //============================================================================================================================================================================
-function addNewTransaction(from, to, amount, description){
+function addNewTransaction(data){
+  var obj = messages.Transac.decode(transaction);
   blockChain.addBlock(new BlockClass(blockChain.chain.length, Date(), {
-    from: from,
-    to: to,
-    amount: amount,
-    description: description
+    from: obj.from,
+    to: obj.to,
+    amount: obj.amount,
+    description: obj.description
   }));
 }
 
