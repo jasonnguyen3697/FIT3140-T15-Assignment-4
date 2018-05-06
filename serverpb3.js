@@ -10,10 +10,6 @@ var BlockClass = require("./blockClass.js");
 var randomNumber = require('random-number');
 var protobuf = require('protocol-buffers');
 var fs = require('fs'); // file system
-var fromcl;
-var tocl;
-var cost;
-var des
 var messages = protobuf(fs.readFileSync('transac.proto'));
 
 //initialise a block chain
@@ -106,18 +102,18 @@ function validateRequest(transaction)
     return 0;
   }
   var balance = checkBalance(obj.from);
-  if (balance >= parseInt(ibj.amount, 10))
+  if (balance >= parseInt(obj.amount, 10))
   {
     console.log("Transaction is valid");
     //add new block
-    addNewTransaction(obj);
+    addNewTransaction(transaction);
     //send both transaction information and server number
     server1.emit('addblock', {
-      transaction: obj,
+      transaction: transaction,
       server: 2
     });
     server2.emit('addblock', {
-      transaction: obj,
+      transaction: transaction,
       server: 2
     });
   }
@@ -164,7 +160,7 @@ io.on('connection', function(socket){
     console.log(blockChain.chain[blockChain.chain.length-1].data);
   });
   socket.on('addblock', function(data){
-    addNewTransaction(data.transaction.client_from, data.transaction.client_to, data.transaction.amount, data.transaction.description);
+    addNewTransaction(data);
     //update wealth of other server
     serverWealth[data.server] += 3;
   });
