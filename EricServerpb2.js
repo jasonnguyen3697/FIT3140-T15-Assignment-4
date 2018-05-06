@@ -111,7 +111,7 @@ io.listen(localportSocketio).on("connection", function (socket){
     
     socket.on('addBlock',function(data){
         var obj = messages.Transac.decode(data);
-        console.log('Adding block: ' + JSON.stringify(data));
+        console.log('Adding block: ' + JSON.stringify(obj));
         addNewTransaction(obj.from, obj.to, obj.amount, obj.description);
         console.log('New blockchain: ' + JSON.stringify(blockChain));
     });
