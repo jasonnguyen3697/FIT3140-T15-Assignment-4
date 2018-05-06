@@ -182,7 +182,7 @@ server3002.post('/', function(request, response){
     from: request.body.client_from,
     to: request.body.client_to,
     amount: request.body.client_amount,
-    desc: request.body.client_description
+    description: request.body.client_description
   });
   if (!chooseServer)
   {
