@@ -2,5 +2,5 @@ message Transac {
     required int64 from =0;
     required int64 to = 1;
     required float amount = 2;
-    required string desc = 3;
+    required string description = 3;
 }
