@@ -128,7 +128,7 @@ io.listen(localportSocketio).on("connection", function (socket){
     });
     
         socket.on('join',function(dataen){
-        var data = messages.Transac.decode(dataen);
+        var data = messages.Transac2.decode(dataen);
         var isNew=1;
         var newServerInfo=data;
         //Find if new node is already in server list
