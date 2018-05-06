@@ -44,7 +44,7 @@ var initialNode={name:'server1',portSocketio:8000,portExpress:3000,address:'http
       wealth:3,
       socket:0
     });
-var servers=[localserverobject,initial];
+var servers=[localserverobject,initialNode];
 var serverNames=[localname,initialNode.name];
 
 //============================================================================================================================================================================
