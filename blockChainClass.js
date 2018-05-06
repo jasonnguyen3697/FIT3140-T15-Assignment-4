@@ -2,8 +2,8 @@ var BlockClass = require('./blockClass.js');
 
 module.exports = class BlockChain
 {
-  constructor()
-  {
+    
+  constructor(){
     //chain is an array with initial genesis block
     this.chain = [this.createGenesisBlock()];
   }
@@ -18,6 +18,11 @@ module.exports = class BlockChain
   getLatestBlock()
   {
     return this.chain[this.chain.length - 1];
+  }
+    
+   get getLatestIndex()
+  {
+    return this.chain[this.chain.length - 1].index;
   }
 
   //add new block to chain

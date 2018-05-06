@@ -19,6 +19,8 @@ var BlockChainClass = require("./blockChainClass.js");
 var BlockClass = require("./blockClass.js");
 var randomNumber = require('random-number');
 var fs =require('fs');
+var JSONdecycle=require('./cycle.js'); //Best way to deep clone a circular object From:https://github.com/douglascrockford/JSON-js/blob/master/cycle.js and https://stackoverflow.com/questions/24075308/avoiding-typeerror-converting-circular-structure-to-json
+
 
 //============================================================================================================================================================================
 //=========================================================================Initialization=====================================================================================
@@ -28,15 +30,6 @@ var localserverobject={name:localname,portSocketio:localportSocketio,portExpress
 var servers=[localserverobject];
 var serverNames=[localname];
 
-//============================================================================================================================================================================
-//=========================================================================Client implementation==============================================================================
-//============================================================================================================================================================================
-/*
-servers[1].socket = io_client.connect(servers[1].address);
-       servers[1].socket.on('connect', function () {
-           servers[1].socket.emit('join', localserverobject);
-       });
-*/
 //============================================================================================================================================================================
 //=========================================================================Server implementation==============================================================================
 //============================================================================================================================================================================
@@ -94,14 +87,14 @@ io.listen(localportSocketio).on("connection", function (socket){
         console.log('Transaction Data: ' + data);
         if (validateRequest(data)){
             addNewTransaction(data.client_from, data.client_to, data.amount, data.description);
-            console.log(blockChain.chain[blockChain.chain.length-1].data);
+            servers[0].wealth+=3;
+            console.log('New blockchain: ' + JSON.stringify(blockChain));
             //Broadcast to add new block to blockchain
-            socket.broadcast.emit('addBlock',data);
-            socket.emit('addBlock',data);
-            //Broadcast to update wealth
-            socket.broadcast.emit('updateWealth',localname);
-            socket.emit('updateWealth',localname);
-            //Send to server that transaction is a success
+            for (var i=1; i<servers.length;i++){
+                servers[i].socket.emit('addBlock',data);
+                servers[i].socket.emit('updateWealth',localname);
+            }
+            //Send to server that transaction is a success            
             socket.emit('transactionSuccess');
         }
         else{
@@ -110,15 +103,16 @@ io.listen(localportSocketio).on("connection", function (socket){
     });
     
     socket.on('updateWealth',function(newWealthServerName){
-        servers[servers.indexOf(newWealthServerName)].wealth+=3;
+        servers[serverNames.indexOf(newWealthServerName)].wealth+=3;
     });
     
     socket.on('addBlock',function(data){
-        console.log('Adding block: ' + data);
+        console.log('Adding block: ' + JSON.stringify(data));
         addNewTransaction(data.client_from, data.client_to, data.amount, data.description);
+        console.log('New blockchain: ' + JSON.stringify(blockChain));
     });
     
-    socket.on('join',function(data){
+        socket.on('join',function(data){
         var isNew=1;
         var newServerInfo=data;
         //Find if new node is already in server list
@@ -126,29 +120,27 @@ io.listen(localportSocketio).on("connection", function (socket){
             isNew=0;
         }
         if (isNew){
-            
+            console.log('Discovered new server: ' + JSON.stringify(data));
+            serverNames.push(newServerInfo.name);
             //Establish client connection to new server
             newServerInfo.socket=io_client.connect(newServerInfo.address);
             newServerInfo.socket.on('connect',function(){
                 newServerInfo.socket.emit('join',localserverobject);
             });
             
-            //Send list of servers and blockchain
-            console.log(servers);
-            
-            var serversCopy=servers.slice();
-            for (var k=0;k<servers.length;k++){
+            //Deep clone server list to make socket of copy null so we can send over JSON
+            var serversCopy=JSON.retrocycle(JSON.decycle(servers));
+            for (var k=0;k<serversCopy.length;k++){
                 serversCopy[k].socket=null;
             }
-            
-            newServerInfo.socket.emit('servers',JSON.stringify(serversCopy));
+            //Send blockchain and serverlist
             newServerInfo.socket.emit('blockchain',JSON.stringify(blockChain));
+            newServerInfo.socket.emit('servers',JSON.stringify(serversCopy));
             
-            //Save to server list
-            serverNames.push(newServerInfo.name);
+            //Save new node to server list
             servers.push(newServerInfo);
             console.log('Server added to serverlist');
-            console.log(servers);
+            console.log('New server list: ' + servers);
             
         }
     });
@@ -156,10 +148,10 @@ io.listen(localportSocketio).on("connection", function (socket){
     socket.on('servers',function(data){
         console.log('Recieved Servers')
         var newServers=JSON.parse(data);
-        for (var k=0;k<newServers.length;k++){
+        for (var k=1;k<newServers.length;k++){
             if (serverNames.indexOf(newServers[k].name)==-1){
                 servers.push(newServers[k]);
-                serverNames.push(newServers[k].names)
+                serverNames.push(newServers[k].name)
                 servers[servers.length-1].socket = io_client.connect(servers[servers.length-1].address);
                 servers[servers.length-1].socket.on('connect', function () {
                     servers[servers.length-1].socket.emit('join', localserverobject);
@@ -170,37 +162,47 @@ io.listen(localportSocketio).on("connection", function (socket){
     });
     
     socket.on('blockchain',function(newBlockchain){
-        var RecivedBlockChain=JSON.parse(newBlockchain);
-        if (RecivedBlockChain.isChainValid){
-            if (RecivedBlockChain.getLatestBlock.index>blockChain.getLatestBlock.index){
-                blockChain=JSON.parse(newBlockchain);
-            }
-        }
+        var blockChaintemp= new BlockChainClass;
+        blockChaintemp.chain=JSON.parse(newBlockchain).chain;
+        if (blockChaintemp.getLatestIndex>blockChain.getLatestIndex){
+            blockChain=blockChaintemp;
+            console.log('Replacing old blockchain with' + newBlockchain);
+        } 
     });
     
     socket.on('Ping',function(){
-        socket.emit('Handshake',localname);
+        for (var i=1;i<servers.length;i++){
+            servers[i].socket.emit('Handshake',localname);
+        }
     })
     
     socket.on('disconnect',function(){
         console.log('Server disconnected');
+        socket.disconnect();
         serverping=[];
-        socket.broadcast.emit('Ping');
-        socket.emit('Ping');
+        for (var i=1;i<servers.length;i++){
+            servers[i].socket.emit('Ping');
+        }
     });
     
     socket.on('Handshake',function(servername){
+        console.log('Received handshake');
         serverping.push(servername);
-        
+        console.log(serverping);
         //Remove disconnected server
-        if (serverping.length==servers.length-1){
-            for (var i=0;i<servers.length;i++){
+        if (serverping.length==servers.length-2){
+            for (var i=1;i<servers.length;i++){
                 if (serverping.indexOf(servers[i].name)==-1){
-                    servers=servers.splice(i,1);
+                    servers.splice(i,1);
+                    serverNames.splice(i,1);
                 }
             }
-            console.log('Deleted server. New list: ' + servers);
+            console.log('Deleted server. New list: ' + serverNames);
         }
+    });
+    
+    socket.on('transactionSuccess',function(){
+        console.log('Transaction Valid. Updating status of client');    
     });
 });//End socketioserver curly brackets
 
@@ -231,6 +233,10 @@ function getRandomServer(serverList){
         m = m + 1;
         rn = rn - serverList[m].wealth;
     }
+    
+    if (m==0){
+        m+=1;
+    }
     return m; //server index
 }
 
@@ -250,8 +256,8 @@ function checkBalance(transactionName){
 }
 
 function validateRequest(transaction){
-    if (!blockChain.isChainValid)
-    {
+    console.log(blockChain.isChainValid);
+    if (!blockChain.isChainValid){
         console.log("Block chain is not valid. Transaction failed.");
         return 0;
     }
