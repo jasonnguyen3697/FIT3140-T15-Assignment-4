@@ -113,11 +113,11 @@ function validateRequest(transaction)
     addNewTransaction(obj);
     //send both transaction information and server number
     server2.emit('addblock', {
-      transaction: obj,
+      transaction: transaction,
       server: 0
     });
     server3.emit('addblock', {
-      transaction: obj,
+      transaction: transaction,
       server: 0
     });
   }
@@ -163,8 +163,7 @@ io.on('connection', function(socket){
     console.log(blockChain.chain[blockChain.chain.length-1].data);
   });
   socket.on('addblock', function(data){
-    var obj = messages.Transac.decode(data.transaction);
-    addNewTransaction(obj.from, obj.to, obj.amount, obj.description);
+    addNewTransaction(data);
     console.log(blockChain.chain[blockChain.chain.length-1].data);
     serverWealth[data.server] += 3;
   });
