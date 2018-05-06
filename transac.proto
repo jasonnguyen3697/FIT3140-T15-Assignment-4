@@ -1,6 +1,6 @@
 message Transac {
-    required int64 from =0;
-    required int64 to = 1;
+    required string from =0;
+    required string to = 1;
     required float amount = 2;
     required string description = 3;
 }
