@@ -7,3 +7,11 @@ message Transac {
 message single{
     required string shorten=0;
     }
+message Transac2 {
+    required string name =0;
+    required string portSocketio = 1;
+    required string portExpress = 2;
+    required string address = 3;
+    required int64 wealth = 4;
+    required string socket= 5
+}
